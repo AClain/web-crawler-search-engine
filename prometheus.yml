@@ -1,0 +1,76 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: "scrape-domains-workers"
+    metrics_path: /
+    dns_sd_configs:
+      - names: [ 'worker-domains' ]
+        type: 'A'
+        port: 8000
+  - job_name: "scrape-sitemaps-workers"
+    metrics_path: /
+    dns_sd_configs:
+      - names: [ 'worker-sitemaps' ]
+        type: 'A'
+        port: 8000
+  - job_name: "scrape-links-workers"
+    metrics_path: /
+    dns_sd_configs:
+      - names: [ 'worker-links' ]
+        type: 'A'
+        port: 8000
+  - job_name: "scrape-prioritizer-workers"
+    metrics_path: /
+    dns_sd_configs:
+      - names: [ 'worker-prioritizer' ]
+        type: 'A'
+        port: 8000
+  - job_name: "scrape-low-priority-workers"
+    metrics_path: /
+    dns_sd_configs:
+      - names: [ 'worker-router-low' ]
+        type: 'A'
+        port: 8000
+  - job_name: "scrape-medium-priority-workers"
+    metrics_path: /
+    dns_sd_configs:
+      - names: [ 'worker-router-medium' ]
+        type: 'A'
+        port: 8000
+  - job_name: "scrape-high-priority-workers"
+    metrics_path: /
+    dns_sd_configs:
+      - names: [ 'worker-router-high' ]
+        type: 'A'
+        port: 8000
+  - job_name: "scrape-selector-worker-1"
+    metrics_path: /
+    dns_sd_configs:
+      - names: [ 'worker-selector-1' ]
+        type: 'A'
+        port: 8000
+  - job_name: "scrape-selector-worker-2"
+    metrics_path: /
+    dns_sd_configs:
+      - names: [ 'worker-selector-2' ]
+        type: 'A'
+        port: 8000
+  - job_name: "scrape-selector-worker-3"
+    metrics_path: /
+    dns_sd_configs:
+      - names: [ 'worker-selector-3' ]
+        type: 'A'
+        port: 8000
+  - job_name: "scrape-selector-worker-4"
+    metrics_path: /
+    dns_sd_configs:
+      - names: [ 'worker-selector-4' ]
+        type: 'A'
+        port: 8000
+  - job_name: "scrape-selector-worker-5"
+    metrics_path: /
+    dns_sd_configs:
+      - names: [ 'worker-selector-5' ]
+        type: 'A'
+        port: 8000

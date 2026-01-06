@@ -1,0 +1,196 @@
+x-worker: &worker
+  build:
+    context: .
+    dockerfile: docker/workers/Dockerfile
+  restart: unless-stopped
+  volumes:
+    - ./src/:/app/src/
+  depends_on:
+    rabbitmq:
+      condition: service_healthy
+      restart: true
+    postgres:
+      condition: service_started
+  env_file: .env
+  environment:
+    - METRICS_PORT=8000
+    - POSTGRES_HOSTNAME=postgres
+    - RABBITMQ_HOSTNAME=rabbitmq
+    - POSTGRES_FORWARD_PORT=5432
+  networks:
+    - ${DOCKER_NETWORK:-monitoring}
+
+services:
+  postgres:
+    image: postgres:18.1
+    container_name: crawler_postgres
+    restart: always
+    ports:
+      - ${POSTGRES_FORWARD_PORT:-5432}:5432
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-username}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DATABASE:-crawling}
+    volumes:
+      - db-data:/var/lib/postgresql
+    networks:
+      - ${DOCKER_NETWORK:-monitoring}
+
+  rabbitmq:
+    image: rabbitmq:4.2-management
+    container_name: crawler_rabbitmq
+    restart: always
+    healthcheck:
+      test: rabbitmq-diagnostics check_port_connectivity
+      interval: 1s
+      timeout: 30s
+      retries: 3
+    ports:
+      - ${RABBITMQ_AMQP_FORWARD_PORT:-5672}:5672
+      - ${RABBITMQ_HTTP_FORWARD_PORT:-15672}:15672
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    configs:
+      - source: rabbitmq-plugins
+        target: /etc/rabbitmq/enabled_plugins
+    volumes:
+      - rabbitmq-lib:/var/lib/rabbitmq/
+      - rabbitmq-log:/var/log/rabbitmq
+    networks:
+      - ${DOCKER_NETWORK:-monitoring}
+
+  prometheus:
+    image: prom/prometheus:v3.7.3
+    container_name: crawler_prometheus
+    user: root
+    ports:
+      - ${PROMETHEUS_FORWARD_PORT:-9090}:9090
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - ${DOCKER_NETWORK:-monitoring}
+
+  grafana:
+    image: grafana/grafana:12.1-ubuntu
+    container_name: crawler_grafana
+    ports:
+      - ${GRAFANA_FORWARD_PORT:-3000}:3000
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:-admin}
+    networks:
+      - ${DOCKER_NETWORK:-monitoring}
+    depends_on:
+      - prometheus
+
+  worker-domains:
+    <<: *worker
+    volumes:
+      - ./src/workers/domains:/app/src/workers/domains:ro
+    command: uv run -m src.workers.domains
+    ports:
+      - ${DOMAINS_WORKER_PORTS_RANGE:-"8001-8009"}:8000
+
+  worker-sitemaps:
+    <<: *worker
+    volumes:
+      - ./src/workers/sitemaps:/app/src/workers/sitemaps:ro
+    command: uv run -m src.workers.sitemaps
+    ports:
+      - ${SITEMAPS_WORKER_PORTS_RANGE:-"8011-8019"}:8000
+
+  worker-links:
+    <<: *worker
+    volumes:
+      - ./src/workers/links:/app/src/workers/links:ro
+    command: uv run -m src.workers.links
+    ports:
+      - ${LINKS_WORKER_PORTS_RANGE:-"8021-8029"}:8000
+
+  worker-prioritizer:
+    <<: *worker
+    volumes:
+      - ./src/workers/prioritizer:/app/src/workers/prioritizer:ro
+    command: uv run -m src.workers.prioritizer
+    ports:
+      - ${PRIORITIZER_WORKER_PORTS_RANGE:-"8031-8039"}:8000
+
+  worker-router-low:
+    <<: *worker
+    volumes:
+      - ./src/workers/router:/app/src/workers/router:ro
+    command: uv run -m src.workers.router low
+    ports:
+      - ${ROUTER_LOW_WORKER_PORTS_RANGE:-"8041-8049"}:8000
+
+  worker-router-medium:
+    <<: *worker
+    volumes:
+      - ./src/workers/router:/app/src/workers/router:ro
+    command: uv run -m src.workers.router medium
+    ports:
+      - ${ROUTER_MEDIUM_WORKER_PORTS_RANGE:-"8051-8059"}:8000
+
+  worker-router-high:
+    <<: *worker
+    volumes:
+      - ./src/workers/router:/app/src/workers/router:ro
+    command: uv run -m src.workers.router high
+    ports:
+      - ${ROUTER_HIGH_WORKER_PORTS_RANGE:-"8061-8069"}:8000
+
+  worker-selector-1:
+    <<: *worker
+    volumes:
+      - ./src/workers/selector:/app/src/workers/selector:ro
+    command: uv run -m src.workers.selector 1
+    ports:
+      - 8071:8000
+
+  worker-selector-2:
+    <<: *worker
+    volumes:
+      - ./src/workers/selector:/app/src/workers/selector:ro
+    command: uv run -m src.workers.selector 2
+    ports:
+      - 8072:8000
+
+  worker-selector-3:
+    <<: *worker
+    volumes:
+      - ./src/workers/selector:/app/src/workers/selector:ro
+    command: uv run -m src.workers.selector 3
+    ports:
+      - 8073:8000
+
+  worker-selector-4:
+    <<: *worker
+    volumes:
+      - ./src/workers/selector:/app/src/workers/selector:ro
+    command: uv run -m src.workers.selector 4
+    ports:
+      - 8074:8000
+
+  worker-selector-5:
+    <<: *worker
+    volumes:
+      - ./src/workers/selector:/app/src/workers/selector:ro
+    command: uv run -m src.workers.selector 5
+    ports:
+      - 8075:8000
+
+configs:
+  rabbitmq-plugins:
+    content: "[rabbitmq_management]."
+
+networks:
+  monitoring:
+
+volumes:
+  db-data:
+    driver: local
+  rabbitmq-lib:
+    driver: local
+  rabbitmq-log:
+    driver: local
+
