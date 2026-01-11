@@ -14,6 +14,13 @@ This project is written in Python and uses :
 
 ### Setup workers (with docker)
 
+- Start services
+
+```
+chmod +x ./capy.sh
+./capy.sh start services
+```
+
 - Run migrations
 
 ```
@@ -23,54 +30,17 @@ uv run alembic upgrade head
 - Start workers
 
 ```
-chmod +x start-workers.sh
-./start-workers
+./capy.sh start workers
 ```
 
-- Start workers only
+- Stop services
 
 ```
-chmod +x stop-workers.sh
-./stop-workers
+./capy.sh stop services
 ```
 
-### Setup workers (without docker, will be slower)
+- Stop workers
 
-- Start domains worker with `uv run -m src.workers.domains`
-
-  > The domain workers will populate the sitemap queue and will dipsatch one link to the links queue
-
-- Start sitemaps worker with `uv run -m src.workers.sitemaps`
-
-  > The sitemap workers will populate the links queue
-
-- Start links worker with `uv run -m src.workers.links`
-
-  > The links workers will populate the prioritizer queue
-
-- Start links prioritizer with `uv run -m src.workers.prioritizer`
-
-  > The prioritizer workers will populate the router queues
-
-- Start links router with `uv run -m src.workers.router <priority>`
-
-  > The router workers will populate the selector queues
-
-- Start links selector with `uv run -m src.workers.selector 1`
-
-  > The selector workers will populate the links queue. This is where the crawling is done
-
-- Start links selector with `uv run -m src.workers.selector 2`
-
-  > The selector workers will populate the links queue. This is where the crawling is done
-
-- Start links selector with `uv run -m src.workers.selector 3`
-
-  > The selector workers will populate the links queue. This is where the crawling is done
-
-- Start links selector with `uv run -m src.workers.selector 4`
-
-  > The selector workers will populate the links queue. This is where the crawling is done
-
-- Start links selector with `uv run -m src.workers.selector 5`
-  > The selector workers will populate the links queue. This is where the crawling is done
+```
+./capy.sh stop services
+```

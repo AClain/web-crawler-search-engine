@@ -1,10 +1,11 @@
 """create domains table
 
 Revision ID: fb1588fb51ff
-Revises: 
+Revises:
 Create Date: 2025-11-24 03:00:33.063844
 
 """
+
 from datetime import datetime
 from typing import Sequence, Union
 
@@ -13,7 +14,7 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = 'fb1588fb51ff'
+revision: str = "fb1588fb51ff"
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

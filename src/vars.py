@@ -11,13 +11,27 @@ USER_AGENTS = [
     "Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1",
     "Mozilla/5.0 (iPad; CPU OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1",
     "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
-    "Mozilla/5.0 (Linux; Android 14; SM-S911B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/26.0 Chrome/122.0.0.0 Mobile Safari/537.36"
+    "Mozilla/5.0 (Linux; Android 14; SM-S911B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/26.0 Chrome/122.0.0.0 Mobile Safari/537.36",
 ]
 HTTP_TIMEOUT = 5
 DEFAULT_CRAWL_DELAY = 5
 # queue workers
-QUEUES = ["hosts", "sitemaps", "links", "high_priority", "medium_priority", "low_priority"]
+QUEUES = [
+    "hosts",
+    "sitemaps",
+    "links",
+    "high_priority",
+    "medium_priority",
+    "low_priority",
+]
 POOL_PREFIX = "links_pool_"
 # others
 MAX_CONTENT_CHARS = 100_000
-WHITELISTED_DOMAINS = ["*.wikipedia.org", "*.reddit.com", "*.stackoverflow.com", "*.github.com", "*.gitlab.com", "*.youtube.com"]
+WHITELISTED_DOMAINS = [
+    "*.wikipedia.org",
+    "*.reddit.com",
+    "*.stackoverflow.com",
+    "*.github.com",
+    "*.gitlab.com",
+    "*.youtube.com",
+]

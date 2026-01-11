@@ -12,7 +12,7 @@ class URLParser:
 
     def get_scheme(self):
         return self._parsed_url.scheme
-    
+
     def get_domain(self):
         hostname = str(self._parsed_url.hostname)
         if not hostname.startswith("www") and hostname.count(".") == 1:

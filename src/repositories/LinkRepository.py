@@ -1,4 +1,3 @@
-
 import uuid
 
 from sqlalchemy import select
@@ -32,14 +31,14 @@ class LinkRepository:
         query = select(Link).where(Link.id == id)
         link = self._session.scalar(query)
         return link
-    
+
     def find_one_by_url(self, url: str):
         query = select(Link).where(Link.url == url)
         link = self._session.scalar(query)
         return link
 
     def delete_one(self, link: Link):
-        #TODO
+        # TODO
         self._session.delete(link)
         self._session.flush()
         return link.id

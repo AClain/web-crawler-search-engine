@@ -1,5 +1,3 @@
-
-
 import uuid
 
 from sqlalchemy import select
@@ -26,17 +24,16 @@ class DomainRepository:
             self._session.refresh(domain)
 
     def upsert_one(self, domain: Domain):
-      query = insert(Domain).values(
-          name=domain.name,
-          protocol=domain.protocol
-      ).on_conflict_do_nothing(
-          index_elements=['name']
-      )
+        query = (
+            insert(Domain)
+            .values(name=domain.name, protocol=domain.protocol)
+            .on_conflict_do_nothing(index_elements=["name"])
+        )
 
-      self._session.execute(query)
-      self._session.flush()
+        self._session.execute(query)
+        self._session.flush()
 
-      return self.find_one_by_name(domain.name)
+        return self.find_one_by_name(domain.name)
 
     def read_all(self):
         query = select(Domain)
@@ -47,7 +44,7 @@ class DomainRepository:
         query = select(Domain).where(Domain.id == id)
         domain = self._session.scalar(query)
         return domain
-    
+
     def find_one_by_name(self, name: str):
         query = select(Domain).filter(Domain.name == name)
         domain = self._session.scalar(query)

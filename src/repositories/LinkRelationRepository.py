@@ -28,6 +28,10 @@ class LinkRelationRepository:
         return link_relation
 
     def find_one_by_relation(self, link_id: uuid.UUID, has_link_id: uuid.UUID):
-        query = select(LinkRelation).where(LinkRelation.link_id == link_id).where(LinkRelation.has_link_id == has_link_id)
+        query = (
+            select(LinkRelation)
+            .where(LinkRelation.link_id == link_id)
+            .where(LinkRelation.has_link_id == has_link_id)
+        )
         link_relation = self._session.scalar(query)
         return link_relation

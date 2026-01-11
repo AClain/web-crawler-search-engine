@@ -17,9 +17,7 @@ from urllib3.exceptions import MaxRetryError
 from src.database.engine import engine
 from src.models.Link import Link
 from src.models.LinkRelation import LinkRelation
-from src.prometheus_exporters import (
-    WORKER_HEALTH_CHECK,
-)
+from src.prometheus_exporters import SELECTOR_LINK_ADDED_COUNTER
 from src.repositories.DomainRepository import DomainRepository
 from src.repositories.LinkRelationRepository import LinkRelationRepository
 from src.repositories.LinkRepository import LinkRepository
@@ -32,9 +30,12 @@ logger = logging.getLogger(__name__)
 
 timeout_exceptions = (ConnectionError, MaxRetryError)
 
-URL_PATTERN = r'https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)'
+URL_PATTERN = r"https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)"
+
 
 def process(link_id: uuid.UUID, session: Session, channel: BlockingChannel):
+    worker_id = os.getenv("HOSTNAME", "unknown")
+
     with session.begin():
         link_repo = LinkRepository(session)
         base_link = link_repo.read_one(link_id)
@@ -48,7 +49,7 @@ def process(link_id: uuid.UUID, session: Session, channel: BlockingChannel):
         if domain is None:
             logger.critical(f"Could not find domain {domain_name}.")
             return
-        
+
         if domain.last_crawled_at is not None:
             crawl_delay = domain.crawl_delay
             now = datetime.now()
@@ -60,8 +61,10 @@ def process(link_id: uuid.UUID, session: Session, channel: BlockingChannel):
             http_client = HTTPClient()
             res = http_client.fetch(base_link.url)
         except timeout_exceptions as e:
-            #TODO urllib3.exceptions.NameResolutionError => DNS, special queue for outdated domains ?
-            logger.error(f"Fetching {base_link.url} resulted in [{type(e).__name__}]: {e}")
+            # TODO urllib3.exceptions.NameResolutionError => DNS, special queue for outdated domains ?
+            logger.error(
+                f"Fetching {base_link.url} resulted in [{type(e).__name__}]: {e}"
+            )
             return
 
         domain.last_crawled_at = datetime.now()
@@ -70,7 +73,7 @@ def process(link_id: uuid.UUID, session: Session, channel: BlockingChannel):
         if res.status_code >= 400 and res.status_code <= 500:
             logger.info(f"Skipping {base_link.url}. Status code {res.status_code}")
             return
-        
+
         content_type = res.headers.get("Content-Type")
         base_link.content_type = content_type
         if content_type is None or "text/html" not in content_type:
@@ -104,15 +107,11 @@ def process(link_id: uuid.UUID, session: Session, channel: BlockingChannel):
             link = link_repo.find_one_by_url(href)
             if link is not None:
                 link_relation = link_relation_repo.find_one_by_relation(
-                    link_id=base_link.id,
-                    has_link_id=link.id
+                    link_id=base_link.id, has_link_id=link.id
                 )
                 if link_relation is not None:
                     continue
-                link_relation = LinkRelation(
-                    link_id=base_link.id,
-                    has_link_id=link.id
-                )
+                link_relation = LinkRelation(link_id=base_link.id, has_link_id=link.id)
                 link_relation_repo.insert_one(link_relation)
                 continue
 
@@ -124,78 +123,75 @@ def process(link_id: uuid.UUID, session: Session, channel: BlockingChannel):
                 lang=crawl_parser.get_lang(),
             )
             link_repo.insert_one(link)
+            SELECTOR_LINK_ADDED_COUNTER.labels(worker_id=worker_id).inc()
             link_relation = link_relation_repo.find_one_by_relation(
-                link_id=base_link.id,
-                has_link_id=link.id
+                link_id=base_link.id, has_link_id=link.id
             )
-            link_relation = LinkRelation(
-                link_id=base_link.id,
-                has_link_id=link.id
-            )
+            link_relation = LinkRelation(link_id=base_link.id, has_link_id=link.id)
             link_relation_repo.insert_one(link_relation)
-            channel.basic_publish(
-                exchange='',
-                routing_key='links',
-                body=link.url
-            )
+            channel.basic_publish(exchange="", routing_key="links", body=link.url)
+
 
 def main():
     arg_parser = ArgumentParser()
-    arg_parser.add_argument(
-        "index", 
-        help="The pool index for the worker to handle."
-    )
+    arg_parser.add_argument("index", help="The pool index for the worker to handle.")
     args = arg_parser.parse_args()
 
-    worker_id = os.getenv("HOSTNAME", "unknown")
     metrics_port = int(os.getenv("METRICS_PORT", "8000"))
 
     start_http_server(metrics_port)
-    print(f'Started Prometheus metrics server on port {metrics_port}')
+    print(f"Started Prometheus metrics server on port {metrics_port}")
 
-    connection = BlockingConnection(ConnectionParameters(
-        host=os.getenv("RABBITMQ_HOSTNAME", "localhost"), 
-        port=os.getenv("RABBITMQ_AMQP_FORWARD_PORT", 5672), 
-        credentials=PlainCredentials(
-            os.getenv("RABBITMQ_USERNAME", "guest"), 
-            os.getenv("RABBITMQ_PASSWORD", "guest")
+    connection = BlockingConnection(
+        ConnectionParameters(
+            host=os.getenv("RABBITMQ_HOSTNAME", "localhost"),
+            port=os.getenv("RABBITMQ_AMQP_FORWARD_PORT", 5672),
+            credentials=PlainCredentials(
+                os.getenv("RABBITMQ_USERNAME", "guest"),
+                os.getenv("RABBITMQ_PASSWORD", "guest"),
+            ),
         )
-    ))
+    )
     channel = connection.channel()
 
     queue_name = f"{POOL_PREFIX}{args.index}"
     channel.queue_declare(queue=queue_name)
-    channel.queue_declare(queue='links')
-    channel.queue_declare(queue='domains')
+    channel.queue_declare(queue="links")
+    channel.queue_declare(queue="domains")
 
     def work(ch, method, properties, body: bytes):
         try:
             link_id = uuid.UUID(body.decode())
         except Exception as e:
-            logger.critical(f"Could not parse UUID {body.decode()}. [{type(e).__name__}]: {e}")
-            ch.basic_ack(delivery_tag = method.delivery_tag)
+            logger.critical(
+                f"Could not parse UUID {body.decode()}. [{type(e).__name__}]: {e}"
+            )
+            ch.basic_ack(delivery_tag=method.delivery_tag)
             return
         print(f" [{queue_name}] Crawling {link_id}")
-        ch.basic_ack(delivery_tag = method.delivery_tag)
+        ch.basic_ack(delivery_tag=method.delivery_tag)
         try:
             with Session(engine) as session:
                 process(link_id, session, channel)
         except Exception as e:
-            logger.critical(f"[{type(e).__name__}] - Lost {link_id} inside {queue_name} worker due to : {e}")
+            logger.critical(
+                f"[{type(e).__name__}] - Lost {link_id} inside {queue_name} worker due to : {e}"
+            )
 
     channel.basic_consume(queue=queue_name, on_message_callback=work)
 
     try:
-        print(f' [{queue_name}] Waiting for links to crawl. To exit press CTRL+C')
+        print(f" [{queue_name}] Waiting for links to crawl. To exit press CTRL+C")
         channel.start_consuming()
-        WORKER_HEALTH_CHECK.labels(worker_id=worker_id).set(1)
     except KeyboardInterrupt:
         print("Shutting down worker...")
         channel.stop_consuming()
         connection.close()
-        WORKER_HEALTH_CHECK.labels(worker_id=worker_id).set(0)
     except Exception as e:
-        logger.critical(f"[{type(e).__name__}] - Could not start consuming due to : {e}")
+        logger.critical(
+            f"[{type(e).__name__}] - Could not start consuming due to : {e}"
+        )
+
 
 if __name__ == "__main__":
     try:

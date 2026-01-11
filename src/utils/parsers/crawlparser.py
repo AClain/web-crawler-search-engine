@@ -8,12 +8,12 @@ from src.utils.parsers.urlparser import URLParser
 logger = logging.getLogger(__name__)
 
 
-class CrawlParser():
+class CrawlParser:
     def __init__(self, html: str) -> None:
         self._html = html
         self._soup = BeautifulSoup(html, "lxml")
         self._soup.prettify()
-        for data in self._soup(['style', 'script']):
+        for data in self._soup(["style", "script"]):
             data.decompose()
         pass
 
@@ -22,21 +22,23 @@ class CrawlParser():
         if body is None:
             return None
 
-        semantic_tags = body.find_all([
-            "h1",
-            "h2",
-            "h3",
-            "h4",
-            "h5",
-            "h6",
-            "p",
-        ])
+        semantic_tags = body.find_all(
+            [
+                "h1",
+                "h2",
+                "h3",
+                "h4",
+                "h5",
+                "h6",
+                "p",
+            ]
+        )
         joined_content = "<body>"
         for semantic_tag in semantic_tags:
             joined_content += semantic_tag.decode().replace("\n", "")
         joined_content += "</body>"
         resoup = BeautifulSoup(joined_content, "lxml")
-        for data in resoup(['a']):
+        for data in resoup(["a"]):
             data.decompose()
         return resoup.decode()
 
@@ -52,7 +54,7 @@ class CrawlParser():
             if pretty_href not in hrefs:
                 hrefs.append(url_parser.prettify())
         return hrefs
-    
+
     def get_unsafe_hrefs(self):
         hrefs = []
         a_tags = self._soup.find_all("a", attrs={"href": re.compile(r"^(?!#).+")})
@@ -63,7 +65,7 @@ class CrawlParser():
             if href not in hrefs:
                 hrefs.append(href)
         return hrefs
-    
+
     def get_title(self):
         title_tag = self._soup.find("title")
         if title_tag is None:

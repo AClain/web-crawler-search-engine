@@ -5,6 +5,7 @@ Revises: fb1588fb51ff
 Create Date: 2025-11-24 03:05:28.739503
 
 """
+
 from datetime import datetime
 from typing import Sequence, Union
 
@@ -14,12 +15,13 @@ from alembic import op
 from src.models.Link import ChangeFreq
 
 # revision identifiers, used by Alembic.
-revision: str = '8dd0ff5fc030'
-down_revision: Union[str, Sequence[str], None] = 'fb1588fb51ff'
+revision: str = "8dd0ff5fc030"
+down_revision: Union[str, Sequence[str], None] = "fb1588fb51ff"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 enum_type = sa.Enum(ChangeFreq, name="changefreq_enum")
+
 
 def upgrade() -> None:
     """Upgrade schema."""

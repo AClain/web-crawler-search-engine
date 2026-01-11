@@ -1,4 +1,3 @@
-
 import uuid
 from typing import TYPE_CHECKING
 
@@ -14,20 +13,22 @@ if TYPE_CHECKING:
 class LinkRelation(BaseModel):
     __tablename__ = "link_relations"
     link_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("links.id"), primary_key=True)
-    has_link_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("links.id"), primary_key=True)
-    
+    has_link_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("links.id"), primary_key=True
+    )
+
     # relationships
     parent_link: Mapped["Link"] = relationship(
         "Link",
         foreign_keys=[link_id],
         back_populates="outgoing_relations",
-        cascade="all, delete"
+        cascade="all, delete",
     )
     child_link: Mapped["Link"] = relationship(
         "Link",
         foreign_keys=[has_link_id],
         back_populates="incoming_relations",
-        cascade="all, delete"
+        cascade="all, delete",
     )
 
     def __repr__(self) -> str:
