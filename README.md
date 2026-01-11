@@ -14,6 +14,11 @@ This project is written in Python and uses :
 
 ### Setup workers (with docker)
 
+- Copy .env.example to .env
+```
+cp .env.example .env
+```
+
 - Start services
 
 ```
